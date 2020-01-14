@@ -20,6 +20,7 @@
     "ip": "^1.1.5"
   },
   "devDependencies": {
+    "@types/node": "^13.1.6",
     "eslint": "^5.14.1",
     "eslint-config-standard": "^12.0.0",
     "eslint-plugin-import": "^2.16.0",
@@ -27,7 +28,8 @@
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-standard": "^4.0.0",
     "nyc": "^13.3.0",
-    "tape": "^4.10.1"
+    "tape": "^4.10.1",
+    "typescript": "^3.7.4"
   },
   "keywords": [
     "dns",

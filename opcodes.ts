@@ -5,7 +5,7 @@
  * https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5
  */
 
-exports.toString = function (opcode) {
+function toString(opcode: number) {
   switch (opcode) {
     case 0: return 'QUERY'
     case 1: return 'IQUERY'
@@ -27,7 +27,7 @@ exports.toString = function (opcode) {
   return 'OPCODE_' + opcode
 }
 
-exports.toOpcode = function (code) {
+function toOpcode(code: string) {
   switch (code.toUpperCase()) {
     case 'QUERY': return 0
     case 'IQUERY': return 1
@@ -47,4 +47,9 @@ exports.toOpcode = function (code) {
     case 'OPCODE_15': return 15
   }
   return 0
+}
+
+export = {
+  toString,
+  toOpcode
 }

@@ -1,6 +1,6 @@
 'use strict'
 
-exports.toString = function (type) {
+function toString(type: number) {
   switch (type) {
     case 1: return 'A'
     case 10: return 'NULL'
@@ -50,7 +50,7 @@ exports.toString = function (type) {
   return 'UNKNOWN_' + type
 }
 
-exports.toType = function (name) {
+function toType(name: string) {
   switch (name.toUpperCase()) {
     case 'A': return 1
     case 'NULL': return 10
@@ -100,4 +100,9 @@ exports.toType = function (name) {
   }
   if (name.toUpperCase().startsWith('UNKNOWN_')) return parseInt(name.slice(8))
   return 0
+}
+
+export = {
+  toString,
+  toType
 }
