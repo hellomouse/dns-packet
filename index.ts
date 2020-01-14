@@ -118,7 +118,7 @@ string.encode.bytes = 0
 string.decode.bytes = 0
 
 interface HeaderEncode {
-  (h, buf?: Buffer, offset?: number): Buffer
+  (h: any, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface HeaderDecode {
@@ -145,21 +145,21 @@ interface HeaderDecode {
 }
 
 const header = {
-  encode: function (h, buf?: Buffer, offset?: number) {
-    if (!buf) buf = header.encodingLength(h)
+  encode: function (h: any, buf?: Buffer, offset?: number) {
+    const bufs: Buffer = buf || new Buffer(header.encodingLength())
     if (!offset) offset = 0
 
     const flags = (h.flags || 0) & 32767
     const type = h.type === 'response' ? RESPONSE_FLAG : QUERY_FLAG
 
-    buf.writeUInt16BE(h.id || 0, offset)
-    buf.writeUInt16BE(flags | type, offset + 2)
-    buf.writeUInt16BE(h.questions.length, offset + 4)
-    buf.writeUInt16BE(h.answers.length, offset + 6)
-    buf.writeUInt16BE(h.authorities.length, offset + 8)
-    buf.writeUInt16BE(h.additionals.length, offset + 10)
+    bufs.writeUInt16BE(h.id || 0, offset)
+    bufs.writeUInt16BE(flags | type, offset + 2)
+    bufs.writeUInt16BE(h.questions.length, offset + 4)
+    bufs.writeUInt16BE(h.answers.length, offset + 6)
+    bufs.writeUInt16BE(h.authorities.length, offset + 8)
+    bufs.writeUInt16BE(h.additionals.length, offset + 10)
 
-    return buf
+    return bufs
   } as HeaderEncode,
 
   decode: function (buf: Buffer, offset?: number) {
@@ -226,7 +226,7 @@ const runknown = {
     return data
   } as runknownDecode,
 
-  encodingLength: function (data) {
+  encodingLength: function (data: any) {
     return data.length + 2
   }
 }
@@ -319,7 +319,7 @@ const rsoa = {
 
     const oldOffset = offset
 
-    const data: SOAData | undefined = {}
+    const data: any = {}
     offset += 2
     data.mname = name.decode(buf, offset)
     offset += name.decode.bytes
@@ -348,7 +348,14 @@ const rsoa = {
 rsoa.encode.bytes = 0
 rsoa.decode.bytes = 0
 
-
+interface rtxtEncode {
+  (data: any, buf?: Buffer, offset?: number): Buffer
+  bytes: number
+}
+interface rtxtDecode {
+  (buf: Buffer, offset?: number): Buffer[]
+  bytes: number
+}
 const rtxt = {
   encode: function (data: any, buf?: Buffer, offset?: number) {
     if (!Array.isArray(data)) data = [data]
@@ -361,22 +368,22 @@ const rtxt = {
       }
     }
 
-    if (!buf) buf = Buffer.allocUnsafe(rtxt.encodingLength(data))
+    const bufs: Buffer = buf || Buffer.allocUnsafe(rtxt.encodingLength(data))
     if (!offset) offset = 0
 
     const oldOffset = offset
     offset += 2
 
-    data.forEach(function (d) {
-      buf[offset++] = d.length
+    data.forEach(function (d: any) {
+      bufs[offset!++] = d.length
       d.copy(buf, offset, 0, d.length)
       offset += d.length
     })
 
-    buf.writeUInt16BE(offset - oldOffset - 2, oldOffset)
+    bufs.writeUInt16BE(offset - oldOffset - 2, oldOffset)
     rtxt.encode.bytes = offset - oldOffset
-    return buf
-  },
+    return bufs
+  } as rtxtEncode,
 
   decode: function (buf: Buffer, offset?: number) {
     if (!offset) offset = 0
@@ -398,12 +405,12 @@ const rtxt = {
 
     rtxt.decode.bytes = offset - oldOffset
     return data
-  },
+  } as rtxtDecode,
 
   encodingLength: function (data: any) {
     if (!Array.isArray(data)) data = [data]
     let length = 2
-    data.forEach(function (buf) {
+    data.forEach(function (buf: string | Buffer) {
       if (typeof buf === 'string') {
         length += Buffer.byteLength(buf) + 1
       } else {
@@ -416,51 +423,57 @@ const rtxt = {
 rtxt.encode.bytes = 0
 rtxt.decode.bytes = 0
 
-const rnull = exports.null = {}
-
-rnull.encode = function (data, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(rnull.encodingLength(data))
-  if (!offset) offset = 0
-
-  if (typeof data === 'string') data = Buffer.from(data)
-  if (!data) data = Buffer.allocUnsafe(0)
-
-  const oldOffset = offset
-  offset += 2
-
-  const len = data.length
-  data.copy(buf, offset, 0, len)
-  offset += len
-
-  buf.writeUInt16BE(offset - oldOffset - 2, oldOffset)
-  rnull.encode.bytes = offset - oldOffset
-  return buf
+interface rnullEncode {
+  (data: string | Buffer, buf?: Buffer, offset?: number): Buffer
+  bytes: number
 }
+interface rnullDecode {
+  (buf: Buffer, offset?: number): Buffer
+  bytes: number
+}
+const rnull = {
+  encode: function (data: string | Buffer, buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(rnull.encodingLength(data))
+    if (!offset) offset = 0
 
+    if (typeof data === 'string') data = Buffer.from(data)
+    if (!data) data = Buffer.allocUnsafe(0)
+
+    const oldOffset = offset
+    offset += 2
+
+    const len = data.length
+    data.copy(buf, offset, 0, len)
+    offset += len
+
+    buf.writeUInt16BE(offset - oldOffset - 2, oldOffset)
+    rnull.encode.bytes = offset - oldOffset
+    return buf
+  } as rnullEncode,
+
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+    const oldOffset = offset
+    const len = buf.readUInt16BE(offset)
+
+    offset += 2
+
+    const data = buf.slice(offset, offset + len)
+    offset += len
+
+    rnull.decode.bytes = offset - oldOffset
+    return data
+  } as rnullDecode,
+
+  encodingLength: function (data: string | Buffer) {
+    if (!data) return 2
+    return (Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data)) + 2
+  }
+}
 rnull.encode.bytes = 0
-
-rnull.decode = function (buf, offset) {
-  if (!offset) offset = 0
-  const oldOffset = offset
-  const len = buf.readUInt16BE(offset)
-
-  offset += 2
-
-  const data = buf.slice(offset, offset + len)
-  offset += len
-
-  rnull.decode.bytes = offset - oldOffset
-  return data
-}
-
 rnull.decode.bytes = 0
 
-rnull.encodingLength = function (data) {
-  if (!data) return 2
-  return (Buffer.isBuffer(data) ? data.length : Buffer.byteLength(data)) + 2
-}
-
-const rhinfo = exports.hinfo = {}
+const rhinfo = {}
 
 rhinfo.encode = function (data, buf, offset) {
   if (!buf) buf = Buffer.allocUnsafe(rhinfo.encodingLength(data))
@@ -1612,5 +1625,6 @@ export = {
   unknown: runknown,
   ns: rns,
   soa: rsoa,
-
+  null: rnull,
+  hinfo: rhinfo
 }

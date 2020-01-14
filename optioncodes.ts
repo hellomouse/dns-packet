@@ -1,6 +1,6 @@
 'use strict'
 
-function toString(type) {
+function toString(type: number) {
   switch (type) {
     // list at
     // https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11
