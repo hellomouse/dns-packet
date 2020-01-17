@@ -22,14 +22,14 @@
   "devDependencies": {
     "@types/ip": "^1.1.0",
     "@types/node": "^13.1.6",
-    "eslint": "^5.14.1",
-    "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.16.0",
-    "eslint-plugin-node": "^8.0.1",
-    "eslint-plugin-promise": "^4.0.1",
-    "eslint-plugin-standard": "^4.0.0",
-    "nyc": "^13.3.0",
-    "tape": "^4.10.1",
+    "eslint": "^6.8.0",
+    "eslint-config-standard": "^14.1.0",
+    "eslint-plugin-import": "^2.20.0",
+    "eslint-plugin-node": "^11.0.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "nyc": "^15.0.0",
+    "tape": "^4.13.0",
     "typescript": "^3.7.4"
   },
   "keywords": [
