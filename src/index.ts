@@ -264,7 +264,7 @@ rns.encode.bytes = 0
 rns.decode.bytes = 0
 
 interface SOAEncode {
-  (data: any, buf?: Buffer, offset?: number): Buffer
+  (data: SOAData, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface SOADecode {
@@ -282,7 +282,7 @@ interface SOAData {
 }
 const rsoa = {
 
-  encode: function (data, buf?: Buffer, offset?: number) {
+  encode: function (data: SOAData, buf?: Buffer, offset?: number) {
     if (!buf) buf = Buffer.allocUnsafe(rsoa.encodingLength(data))
     if (!offset) offset = 0
 
@@ -343,22 +343,26 @@ rsoa.encode.bytes = 0
 rsoa.decode.bytes = 0
 
 interface rtxtEncode {
-  (data: any, buf?: Buffer, offset?: number): Buffer
+  (data: (string | Buffer)[], buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface rtxtDecode {
   (buf: Buffer, offset?: number): Buffer[]
   bytes: number
 }
+
 const rtxt = {
-  encode: function (data: any, buf?: Buffer, offset?: number) {
+  encode: function (data: (string | Buffer)[], buf?: Buffer, offset?: number) {
+    const newdata: Buffer[] = []
     if (!Array.isArray(data)) data = [data]
     for (let i = 0; i < data.length; i++) {
       if (typeof data[i] === 'string') {
-        data[i] = Buffer.from(data[i])
+        newdata[i] = Buffer.from(data[i] as string)
       }
       if (!Buffer.isBuffer(data[i])) {
         throw new Error('Must be a Buffer')
+      } else {
+        newdata[i] = data[i] as Buffer
       }
     }
 
@@ -368,10 +372,10 @@ const rtxt = {
     const oldOffset = offset
     offset += 2
 
-    data.forEach(function (d: any) {
+    newdata.forEach(function (d) {
       bufs[offset!++] = d.length
-      d.copy(buf, offset, 0, d.length)
-      offset += d.length
+      d.copy(buf!, offset, 0, d.length)
+      offset! += d.length
     })
 
     bufs.writeUInt16BE(offset - oldOffset - 2, oldOffset)
@@ -401,10 +405,10 @@ const rtxt = {
     return data
   } as rtxtDecode,
 
-  encodingLength: function (data: any) {
+  encodingLength: function (data: (string| Buffer)[]) {
     if (!Array.isArray(data)) data = [data]
     let length = 2
-    data.forEach(function (buf: string | Buffer) {
+    data.forEach(function (buf) {
       if (typeof buf === 'string') {
         length += Buffer.byteLength(buf) + 1
       } else {
@@ -472,7 +476,7 @@ interface rhInfo {
   cpu: string
 }
 interface rhInfoEncode {
-  (data: { cpu: string; os: string }, buf?: Buffer, offset?: number): Buffer
+  (data: rhInfo, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface rhInfoDecode {
@@ -480,7 +484,7 @@ interface rhInfoDecode {
   bytes: number
 }
 const rhinfo = {
-  encode: function (data: { cpu: string; os: string }, buf?: Buffer, offset?: number) {
+  encode: function (data: rhInfo, buf?: Buffer, offset?: number) {
     if (!buf) buf = Buffer.allocUnsafe(rhinfo.encodingLength(data))
     if (!offset) offset = 0
 
@@ -510,7 +514,7 @@ const rhinfo = {
     return data as rhInfo
   } as rhInfoDecode,
 
-  encodingLength: function (data: { cpu: string; os: string }) {
+  encodingLength: function (data: rhInfo) {
     return string.encodingLength(data.cpu) + string.encodingLength(data.os) + 2
   }
 }
@@ -1592,6 +1596,7 @@ type RENC = (typeof ra
 | typeof ruri
 | typeof rds)
 | typeof runknown
+
 function renc (type: string): RENC {
   switch (type.toUpperCase()) {
     case 'A': return ra
@@ -1672,8 +1677,8 @@ const answer = {
       buf.writeUInt32BE(a.ttl || 0, offset + 4)
 
       offset += 8
-      const enc = renc(a.type)
-      enc.encode(a.data, buf, offset)
+      const enc = renc(a.type);
+      (enc.encode as (arg0: ReturnType<RENC['decode']>, buf?: Buffer, offset?: number) => Buffer)(a.data!, buf, offset)
       offset += enc.encode.bytes
     }
 
@@ -1715,8 +1720,8 @@ const answer = {
   } as answerDecode,
 
   encodingLength: function (a: answer): number {
-    const data = (a.data !== null && a.data !== undefined) ? a.data : a.options
-    return name.encodingLength(a.name) + 8 + renc(a.type).encodingLength(data)
+    const data = (a.data !== null && a.data !== undefined) ? a.data : a.options!
+    return name.encodingLength(a.name) + 8 + (renc(a.type).encodingLength as (data: ReturnType<RENC['decode']>) => number)(data)
   }
 }
 answer.encode.bytes = 0
@@ -1770,9 +1775,7 @@ const question = {
     q.class = classes.toString(buf.readUInt16BE(offset))
     offset += 2
 
-    // q.class is a string, TS doesn't like it, epression works fine in normal JS
     const qu = !!((q!.class as any) & QU_MASK)
-    // SyntaxError because q.class is a string
     if (qu) q.class &= NOT_QU_MASK
 
     question.decode.bytes = offset - oldOffset
@@ -1786,7 +1789,14 @@ const question = {
 question.encode.bytes = 0
 question.decode.bytes = 0
 
-function encode (result: { questions: Question[]; answers: answer[]; authorities: any[]; additionals: any[] }, buf?: Buffer, offset?: number) {
+interface result {
+  questions: Question[];
+  answers: answer[];
+  authorities: any[];
+  additionals: any[]
+}
+
+function encode (result: result, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(encodingLength(result))
   if (!offset) offset = 0
 
@@ -1831,7 +1841,7 @@ function decode (buf: Buffer, offset?: number) {
 
 decode.bytes = 0
 
-function encodingLength (result: { questions: any; answers: any; authorities: any; additionals: any }) {
+function encodingLength (result: result) {
   return header.encodingLength() +
     encodingLengthList(result.questions || [], question) +
     encodingLengthList(result.answers || [], answer) +
@@ -1839,7 +1849,7 @@ function encodingLength (result: { questions: any; answers: any; authorities: an
     encodingLengthList(result.additionals || [], answer)
 }
 
-function streamEncode (result: { questions: Question[]; answers: never[]; authorities: never[]; additionals: never[] }) {
+function streamEncode (result: result) {
   const buf = encode(result)
   const sbuf = Buffer.allocUnsafe(2)
   sbuf.writeUInt16BE(buf.byteLength, 0)
@@ -1863,21 +1873,21 @@ function streamDecode (sbuf: Buffer) {
 
 streamDecode.bytes = 0
 
-function encodingLengthList (list: any[] | string, enc: typeof question | typeof answer | typeof roption) {
+function encodingLengthList (list: (Question | answer | rOptionData)[], enc: typeof question | typeof answer | typeof roption) {
   let len = 0
-  for (let i = 0; i < list.length; i++) len += enc.encodingLength(list[i])
+  for (let i = 0; i < list.length; i++) len += (enc.encodingLength as (arg0: Question | answer | rOptionData) => number)(list[i])
   return len
 }
 
-function encodeList (list: any[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
+function encodeList (list: (Question | answer | rOptionData)[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
   for (let i = 0; i < list.length; i++) {
-    enc.encode(list[i], buf, offset)
+    (enc.encode as (arg0: Question | answer | rOptionData, buf: Buffer | undefined, offset: number | undefined) => Question | Buffer)(list[i], buf, offset)
     offset += enc.encode.bytes
   }
   return offset
 }
 
-function decodeList (list: any[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
+function decodeList (list: (Question | answer | rOptionData)[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
   for (let i = 0; i < list.length; i++) {
     list[i] = enc.decode(buf, offset)
     offset += enc.decode.bytes
