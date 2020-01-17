@@ -13,7 +13,7 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "clean": "rm -rf coverage .nyc_output/ lib/",
+    "clean": "rm -rf coverage .nyc_output/ lib/ *.tsbuildinfo",
     "lint": "eslint --color src/*.ts examples/*.js",
     "pretest": "npm run lint && npm run build",
     "test": "tape test.js",
