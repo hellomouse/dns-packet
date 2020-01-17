@@ -12,8 +12,8 @@
   "main": "lib/index.js",
   "scripts": {
     "clean": "rm -rf coverage .nyc_output/",
-    "lint": "eslint --color *.js examples/*.js",
-    "pretest": "npm run lint",
+    "lint": "eslint --color src/*.ts examples/*.js",
+    "pretest": "npm run lint && tsc -p tsconfig.json",
     "test": "tape test.js",
     "coverage": "nyc -r html npm test"
   },
@@ -23,6 +23,8 @@
   "devDependencies": {
     "@types/ip": "^1.1.0",
     "@types/node": "^13.1.6",
+    "@typescript-eslint/eslint-plugin": "^2.16.0",
+    "@typescript-eslint/parser": "^2.16.0",
     "eslint": "^6.8.0",
     "eslint-config-standard": "^14.1.0",
     "eslint-plugin-import": "^2.20.0",
