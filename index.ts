@@ -475,7 +475,7 @@ rnull.decode.bytes = 0
 
 const rhinfo = {}
 
-rhinfo.encode = function (data, buf, offset) {
+rhinfo.encode = function (data: { cpu: string; os: string }, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(rhinfo.encodingLength(data))
   if (!offset) offset = 0
 
@@ -492,7 +492,7 @@ rhinfo.encode = function (data, buf, offset) {
 
 rhinfo.encode.bytes = 0
 
-rhinfo.decode = function (buf, offset) {
+rhinfo.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   const oldOffset = offset
@@ -509,7 +509,7 @@ rhinfo.decode = function (buf, offset) {
 
 rhinfo.decode.bytes = 0
 
-rhinfo.encodingLength = function (data) {
+rhinfo.encodingLength = function (data: { cpu: string; os: string }) {
   return string.encodingLength(data.cpu) + string.encodingLength(data.os) + 2
 }
 
@@ -517,7 +517,7 @@ const rptr = exports.ptr = {}
 const rcname = exports.cname = rptr
 const rdname = exports.dname = rptr
 
-rptr.encode = function (data, buf, offset) {
+rptr.encode = function (data: string, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(rptr.encodingLength(data))
   if (!offset) offset = 0
 
@@ -529,7 +529,7 @@ rptr.encode = function (data, buf, offset) {
 
 rptr.encode.bytes = 0
 
-rptr.decode = function (buf, offset) {
+rptr.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   const data = name.decode(buf, offset + 2)
@@ -539,13 +539,13 @@ rptr.decode = function (buf, offset) {
 
 rptr.decode.bytes = 0
 
-rptr.encodingLength = function (data) {
+rptr.encodingLength = function (data: string) {
   return name.encodingLength(data) + 2
 }
 
 const rsrv = exports.srv = {}
 
-rsrv.encode = function (data, buf, offset) {
+rsrv.encode = function (data: { priority: number; weight: number; port: number; target: string }, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(rsrv.encodingLength(data))
   if (!offset) offset = 0
 
@@ -563,7 +563,7 @@ rsrv.encode = function (data, buf, offset) {
 
 rsrv.encode.bytes = 0
 
-rsrv.decode = function (buf, offset) {
+rsrv.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   const len = buf.readUInt16BE(offset)
@@ -584,11 +584,14 @@ rsrv.encodingLength = function (data) {
   return 8 + name.encodingLength(data.target)
 }
 
+interface CAA {
+  issuerCritical: boolean; flags: number; tag: string; value: string
+}
 const rcaa = exports.caa = {}
 
 rcaa.ISSUER_CRITICAL = 1 << 7
 
-rcaa.encode = function (data, buf, offset) {
+rcaa.encode = function (data: CAA, buf?: Buffer, offset?: number) {
   const len = rcaa.encodingLength(data)
 
   if (!buf) buf = Buffer.allocUnsafe(rcaa.encodingLength(data))
@@ -613,14 +616,14 @@ rcaa.encode = function (data, buf, offset) {
 
 rcaa.encode.bytes = 0
 
-rcaa.decode = function (buf, offset) {
+rcaa.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   const len = buf.readUInt16BE(offset)
   offset += 2
 
   const oldOffset = offset
-  const data = {}
+  const data: any = {}
   data.flags = buf.readUInt8(offset)
   offset += 1
   data.tag = string.decode(buf, offset)
@@ -631,12 +634,12 @@ rcaa.decode = function (buf, offset) {
 
   rcaa.decode.bytes = len + 2
 
-  return data
+  return data as CAA
 }
 
 rcaa.decode.bytes = 0
 
-rcaa.encodingLength = function (data) {
+rcaa.encodingLength = function (data: CAA) {
   return string.encodingLength(data.tag) + string.encodingLength(data.value) + 2
 }
 
@@ -682,7 +685,7 @@ rmx.encodingLength = function (data) {
 
 const ra = exports.a = {}
 
-ra.encode = function (host, buf, offset) {
+ra.encode = function (host: string, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(ra.encodingLength(host))
   if (!offset) offset = 0
 
@@ -695,7 +698,7 @@ ra.encode = function (host, buf, offset) {
 
 ra.encode.bytes = 0
 
-ra.decode = function (buf, offset) {
+ra.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   offset += 2
@@ -712,7 +715,7 @@ ra.encodingLength = function () {
 
 const raaaa = exports.aaaa = {}
 
-raaaa.encode = function (host, buf, offset) {
+raaaa.encode = function (host: string, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(raaaa.encodingLength(host))
   if (!offset) offset = 0
 
@@ -725,7 +728,7 @@ raaaa.encode = function (host, buf, offset) {
 
 raaaa.encode.bytes = 0
 
-raaaa.decode = function (buf, offset) {
+raaaa.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   offset += 2
@@ -742,7 +745,7 @@ raaaa.encodingLength = function () {
 
 const roption = exports.option = {}
 
-roption.encode = function (option, buf, offset) {
+roption.encode = function (option: any, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(roption.encodingLength(option))
   if (!offset) offset = 0
   const oldOffset = offset
@@ -816,7 +819,7 @@ roption.encode = function (option, buf, offset) {
 
 roption.encode.bytes = 0
 
-roption.decode = function (buf, offset) {
+roption.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
   const option = {}
   option.code = buf.readUInt16BE(offset)
@@ -858,7 +861,7 @@ roption.decode = function (buf, offset) {
 
 roption.decode.bytes = 0
 
-roption.encodingLength = function (option) {
+roption.encodingLength = function (option: any) {
   if (option.data) {
     return option.data.length + 4
   }
@@ -879,7 +882,7 @@ roption.encodingLength = function (option) {
 
 const ropt = exports.opt = {}
 
-ropt.encode = function (options, buf, offset) {
+ropt.encode = function (options: any, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(ropt.encodingLength(options))
   if (!offset) offset = 0
   const oldOffset = offset
@@ -894,7 +897,7 @@ ropt.encode = function (options, buf, offset) {
 
 ropt.encode.bytes = 0
 
-ropt.decode = function (buf, offset) {
+ropt.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
   const oldOffset = offset
 
@@ -923,7 +926,7 @@ rdnskey.PROTOCOL_DNSSEC = 3
 rdnskey.ZONE_KEY = 0x80
 rdnskey.SECURE_ENTRYPOINT = 0x8000
 
-rdnskey.encode = function (key, buf, offset) {
+rdnskey.encode = function (key: { key: Buffer; flags: number; algorithm: number }, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(rdnskey.encodingLength(key))
   if (!offset) offset = 0
   const oldOffset = offset
@@ -950,7 +953,7 @@ rdnskey.encode = function (key, buf, offset) {
 
 rdnskey.encode.bytes = 0
 
-rdnskey.decode = function (buf, offset) {
+rdnskey.decode = function (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
   const oldOffset = offset
 
