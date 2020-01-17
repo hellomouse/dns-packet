@@ -194,7 +194,7 @@ header.encode.bytes = 12
 header.decode.bytes = 12
 
 interface runknownEncode {
-  (data: any, buf?: Buffer, offset?: number): Buffer
+  (data: Buffer, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface runknownDecode {
@@ -203,7 +203,7 @@ interface runknownDecode {
 }
 
 const runknown = {
-  encode: function (data: any, buf?: Buffer, offset?: number) {
+  encode: function (data: Buffer, buf?: Buffer, offset?: number) {
     if (!buf) buf = Buffer.allocUnsafe(runknown.encodingLength(data))
     if (!offset) offset = 0
 
@@ -223,7 +223,7 @@ const runknown = {
     return data
   } as runknownDecode,
 
-  encodingLength: function (data: any) {
+  encodingLength: function (data: Buffer) {
     return data.length + 2
   }
 }
