@@ -6,7 +6,7 @@ function toString (klass: number) {
     case 4: return 'HS'
     case 255: return 'ANY'
   }
-  return 'UNKNOWN_' + klass
+  return `UNKNOWN_${klass}`
 }
 
 function toClass (name: string) {
