@@ -20,6 +20,7 @@
     "ip": "^1.1.5"
   },
   "devDependencies": {
+    "@types/ip": "^1.1.0",
     "@types/node": "^13.1.6",
     "eslint": "^5.14.1",
     "eslint-config-standard": "^12.0.0",
