@@ -324,7 +324,7 @@ tape('stream', function (t) {
   t.same(buf.length, packet.streamEncode.bytes, 'streamEncode.bytes was set correctly')
   t.ok(compare(t, val2.type, val.type), 'streamDecoded type match')
   t.ok(compare(t, val2.id, val.id), 'streamDecoded id match')
-  t.ok(parseInt(val2.flags) === parseInt(val.flags & 0x7FFF), 'streamDecoded flags match')
+  t.ok(val2.flags === (val.flags & 0x7FFF), 'streamDecoded flags match')
   const answer = val.answers[0]
   const answer2 = val2.answers[0]
   t.ok(compare(t, answer.type, answer2.type), 'streamDecoded RR type match')
@@ -539,6 +539,7 @@ tape('unpack', function (t) {
 })
 
 tape('optioncodes', function (t) {
+  /** @type {[number, string][]} */
   const opts = [
     [0, 'OPTION_0'],
     [1, 'LLQ'],
