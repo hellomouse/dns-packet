@@ -3,4 +3,5 @@ node_modules/
 coverage/
 package-lock.json
 .d.ts
-.js
+lib/*
+*.tsbuildinfo

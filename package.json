@@ -9,6 +9,7 @@
   "engines": {
     "node": ">=6"
   },
+  "main": "lib/index.js",
   "scripts": {
     "clean": "rm -rf coverage .nyc_output/",
     "lint": "eslint --color *.js examples/*.js",
