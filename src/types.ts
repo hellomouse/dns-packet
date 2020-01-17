@@ -1,6 +1,6 @@
 'use strict'
 
-function toString(type: number) {
+function toString (type: number) {
   switch (type) {
     case 1: return 'A'
     case 10: return 'NULL'
@@ -51,7 +51,7 @@ function toString(type: number) {
   return 'UNKNOWN_' + type
 }
 
-function toType(name: string) {
+function toType (name: string) {
   switch (name.toUpperCase()) {
     case 'A': return 1
     case 'NULL': return 10

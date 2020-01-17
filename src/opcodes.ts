@@ -5,7 +5,7 @@
  * https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-5
  */
 
-function toString(opcode: number) {
+function toString (opcode: number) {
   switch (opcode) {
     case 0: return 'QUERY'
     case 1: return 'IQUERY'
@@ -27,7 +27,7 @@ function toString(opcode: number) {
   return 'OPCODE_' + opcode
 }
 
-function toOpcode(code: string) {
+function toOpcode (code: string) {
   switch (code.toUpperCase()) {
     case 'QUERY': return 0
     case 'IQUERY': return 1

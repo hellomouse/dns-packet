@@ -5,7 +5,7 @@
  * https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml
  */
 
-function toString(rcode: number) {
+function toString (rcode: number) {
   switch (rcode) {
     case 0: return 'NOERROR'
     case 1: return 'FORMERR'
@@ -27,7 +27,7 @@ function toString(rcode: number) {
   return 'RCODE_' + rcode
 }
 
-function toRCode(code: string) {
+function toRCode (code: string) {
   switch (code.toUpperCase()) {
     case 'NOERROR': return 0
     case 'FORMERR': return 1

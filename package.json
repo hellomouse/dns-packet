@@ -41,11 +41,6 @@
     "abstract-encoding"
   ],
   "files": [
-    "index.js",
-    "types.js",
-    "rcodes.js",
-    "opcodes.js",
-    "classes.js",
-    "optioncodes.js"
+    "lib/*"
   ]
 }

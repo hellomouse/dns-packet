@@ -1,6 +1,6 @@
 'use strict'
 
-function toString(klass: number) {
+function toString (klass: number) {
   switch (klass) {
     case 1: return 'IN'
     case 2: return 'CS'
@@ -11,7 +11,7 @@ function toString(klass: number) {
   return 'UNKNOWN_' + klass
 }
 
-function toClass(name: string) {
+function toClass (name: string) {
   switch (name.toUpperCase()) {
     case 'IN': return 1
     case 'CS': return 2

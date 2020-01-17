@@ -1,6 +1,6 @@
 'use strict'
 
-function toString(type: number) {
+function toString (type: number) {
   switch (type) {
     // list at
     // https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11
@@ -25,7 +25,7 @@ function toString(type: number) {
   return `OPTION_${type}`
 }
 
-function toCode(name: number | string) {
+function toCode (name: number | string) {
   if (typeof name === 'number') {
     return name
   }

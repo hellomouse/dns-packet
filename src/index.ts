@@ -47,8 +47,6 @@ const name = {
     return buf
   } as encode,
 
-
-
   decode: function (buf: Buffer, offset?: number): string {
     if (!offset) offset = 0
 
@@ -146,7 +144,7 @@ interface HeaderDecode {
 
 const header = {
   encode: function (h: any, buf?: Buffer, offset?: number) {
-    const bufs: Buffer = buf || new Buffer(header.encodingLength())
+    const bufs: Buffer = buf || Buffer.alloc(header.encodingLength())
     if (!offset) offset = 0
 
     const flags = (h.flags || 0) & 32767
@@ -203,7 +201,6 @@ interface runknownDecode {
   (buf: Buffer, offset?: number): Buffer
   bytes: number
 }
-
 
 const runknown = {
   encode: function (data: any, buf?: Buffer, offset?: number) {
@@ -391,7 +388,7 @@ const rtxt = {
     let remaining = buf.readUInt16BE(offset)
     offset += 2
 
-    let data = []
+    const data = []
     while (remaining > 0) {
       const len = buf[offset++]
       --remaining
@@ -550,14 +547,12 @@ const rptr = {
     return data
   } as rPTRDecode,
 
-
   encodingLength: function (data: string) {
     return name.encodingLength(data) + 2
   }
 }
 rptr.encode.bytes = 0
 rptr.decode.bytes = 0
-
 
 const rcname = rptr
 const rdname = rptr
@@ -663,7 +658,7 @@ const rcaa = {
     offset += 2
 
     const oldOffset = offset
-    let data: any;
+    let data: any
     data!.flags = buf.readUInt8(offset)
     offset += 1
     data!.tag = string.decode(buf, offset)
@@ -1056,8 +1051,8 @@ const rdnskey = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    let key: any = {}
-    let length = buf.readUInt16BE(offset)
+    const key: any = {}
+    const length = buf.readUInt16BE(offset)
     offset += 2
     key.flags = buf.readUInt16BE(offset)
     offset += 2
@@ -1080,7 +1075,6 @@ const rdnskey = {
 
 rdnskey.encode.bytes = 0
 rdnskey.decode.bytes = 0
-
 
 interface rRRSIG {
   signature: Buffer;
@@ -1142,8 +1136,8 @@ const rrrsig = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    let sig: any = {}
-    let length = buf.readUInt16BE(offset)
+    const sig: any = {}
+    const length = buf.readUInt16BE(offset)
     offset += 2
     sig.typeCovered = types.toString(buf.readUInt16BE(offset))
     offset += 2
@@ -1239,9 +1233,9 @@ const typebitmap = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    let typesByWindow: number[][] = []
+    const typesByWindow: number[][] = []
     for (let i = 0; i < typelist.length; i++) {
-      let typeid = types.toType(typelist[i])
+      const typeid = types.toType(typelist[i])
       if (typesByWindow[typeid >> 8] === undefined) {
         typesByWindow[typeid >> 8] = []
       }
@@ -1250,7 +1244,7 @@ const typebitmap = {
 
     for (let i = 0; i < typesByWindow.length; i++) {
       if (typesByWindow[i] !== undefined) {
-        let windowBuf = Buffer.from(typesByWindow[i])
+        const windowBuf = Buffer.from(typesByWindow[i])
         buf.writeUInt8(i, offset)
         offset += 1
         buf.writeUInt8(windowBuf.length, offset)
@@ -1268,17 +1262,17 @@ const typebitmap = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    let typelist: string[] = []
+    const typelist: string[] = []
     while (offset - oldOffset < length) {
-      let window = buf.readUInt8(offset)
+      const window = buf.readUInt8(offset)
       offset += 1
-      let windowLength = buf.readUInt8(offset)
+      const windowLength = buf.readUInt8(offset)
       offset += 1
       for (let i = 0; i < windowLength; i++) {
-        let b = buf.readUInt8(offset + i)
+        const b = buf.readUInt8(offset + i)
         for (let j = 0; j < 8; j++) {
           if (b & (1 << (7 - j))) {
-            let typeid = types.toString((window << 8) | (i << 3) | j)
+            const typeid = types.toString((window << 8) | (i << 3) | j)
             typelist.push(typeid)
           }
         }
@@ -1291,9 +1285,9 @@ const typebitmap = {
   } as typebitmapDecode,
 
   encodingLength: function (typelist: string[]) {
-    let extents: number[] = []
+    const extents: number[] = []
     for (let i = 0; i < typelist.length; i++) {
-      let typeid = types.toType(typelist[i])
+      const typeid = types.toType(typelist[i])
       extents[typeid >> 8] = Math.max(extents[typeid >> 8] || 0, typeid & 0xFF)
     }
 
@@ -1343,8 +1337,8 @@ const rnsec = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    let record: any = {}
-    let length = buf.readUInt16BE(offset)
+    const record: any = {}
+    const length = buf.readUInt16BE(offset)
     offset += 2
     record.nextDomain = name.decode(buf, offset)
     offset += name.decode.bytes
@@ -1423,8 +1417,8 @@ const rnsec3 = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    let record: any = {}
-    let length = buf.readUInt16BE(offset)
+    const record: any = {}
+    const length = buf.readUInt16BE(offset)
     offset += 2
     record.algorithm = buf.readUInt8(offset)
     offset += 1
@@ -1502,7 +1496,7 @@ const rds = {
     const oldOffset = offset
 
     const digest: any = {}
-    let length = buf.readUInt16BE(offset)
+    const length = buf.readUInt16BE(offset)
     offset += 2
     digest.keyTag = buf.readUInt16BE(offset)
     offset += 2
@@ -1543,7 +1537,7 @@ const ruri = {
     const oldOffset = offset
     const target = record.target
 
-    buf.writeUInt16BE(4 + target.length, offset);
+    buf.writeUInt16BE(4 + target.length, offset)
     offset += 2
     buf.writeUInt16BE(record.priority, offset)
     offset += 2
@@ -1601,7 +1595,7 @@ type RENC = (typeof ra
 | typeof ruri
 | typeof rds)
 | typeof runknown
-function renc(type: string): RENC {
+function renc (type: string): RENC {
   switch (type.toUpperCase()) {
     case 'A': return ra
     case 'PTR': return rptr
@@ -1795,8 +1789,7 @@ const question = {
 question.encode.bytes = 0
 question.decode.bytes = 0
 
-
-function encode(result: { questions: Question[]; answers: answer[]; authorities: any[]; additionals: any[] }, buf?: Buffer, offset?: number) {
+function encode (result: { questions: Question[]; answers: answer[]; authorities: any[]; additionals: any[] }, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(encodingLength(result))
   if (!offset) offset = 0
 
@@ -1822,7 +1815,7 @@ function encode(result: { questions: Question[]; answers: answer[]; authorities:
 
 encode.bytes = 0
 
-function decode(buf: Buffer, offset?: number) {
+function decode (buf: Buffer, offset?: number) {
   if (!offset) offset = 0
 
   const oldOffset = offset
@@ -1841,7 +1834,7 @@ function decode(buf: Buffer, offset?: number) {
 
 decode.bytes = 0
 
-function encodingLength(result: { questions: any; answers: any; authorities: any; additionals: any }) {
+function encodingLength (result: { questions: any; answers: any; authorities: any; additionals: any }) {
   return header.encodingLength() +
     encodingLengthList(result.questions || [], question) +
     encodingLengthList(result.answers || [], answer) +
@@ -1849,7 +1842,7 @@ function encodingLength(result: { questions: any; answers: any; authorities: any
     encodingLengthList(result.additionals || [], answer)
 }
 
-function streamEncode(result: { questions: Question[]; answers: never[]; authorities: never[]; additionals: never[] }) {
+function streamEncode (result: { questions: Question[]; answers: never[]; authorities: never[]; additionals: never[] }) {
   const buf = encode(result)
   const sbuf = Buffer.allocUnsafe(2)
   sbuf.writeUInt16BE(buf.byteLength, 0)
@@ -1860,7 +1853,7 @@ function streamEncode(result: { questions: Question[]; answers: never[]; authori
 
 streamEncode.bytes = 0
 
-function streamDecode(sbuf: Buffer) {
+function streamDecode (sbuf: Buffer) {
   const len = sbuf.readUInt16BE(0)
   if (sbuf.byteLength < len + 2) {
     // not enough data
@@ -1873,13 +1866,13 @@ function streamDecode(sbuf: Buffer) {
 
 streamDecode.bytes = 0
 
-function encodingLengthList(list: any[] | string, enc: typeof question | typeof answer | typeof roption) {
+function encodingLengthList (list: any[] | string, enc: typeof question | typeof answer | typeof roption) {
   let len = 0
   for (let i = 0; i < list.length; i++) len += enc.encodingLength(list[i])
   return len
 }
 
-function encodeList(list: any[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
+function encodeList (list: any[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
   for (let i = 0; i < list.length; i++) {
     enc.encode(list[i], buf, offset)
     offset += enc.encode.bytes
@@ -1887,7 +1880,7 @@ function encodeList(list: any[], enc: typeof question | typeof answer | typeof r
   return offset
 }
 
-function decodeList(list: any[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
+function decodeList (list: any[], enc: typeof question | typeof answer | typeof roption, buf: Buffer, offset: number) {
   for (let i = 0; i < list.length; i++) {
     list[i] = enc.decode(buf, offset)
     offset += enc.decode.bytes
