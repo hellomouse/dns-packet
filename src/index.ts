@@ -112,35 +112,36 @@ const string = {
 string.encode.bytes = 0
 string.decode.bytes = 0
 
+interface HeaderData {
+  id: number;
+  type: 'response' | 'query';
+  flags: number;
+  flag_qr: boolean;
+  opcode: string;
+  flag_aa: boolean;
+  flag_tc: boolean;
+  flag_rd: boolean;
+  flag_ra: boolean;
+  flag_z: boolean;
+  flag_ad: boolean;
+  flag_cd: boolean;
+  rcode: string;
+  questions: Question[];
+  answers: answer[]
+  authorities: any[]
+  additionals: any[]
+}
 interface HeaderEncode {
-  (h: any, buf?: Buffer, offset?: number): Buffer
+  (h: HeaderData, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface HeaderDecode {
-  (buf: Buffer, offset?: number): {
-    id: number;
-    type: string;
-    flags: number;
-    flag_qr: boolean;
-    opcode: string;
-    flag_aa: boolean;
-    flag_tc: boolean;
-    flag_rd: boolean;
-    flag_ra: boolean;
-    flag_z: boolean;
-    flag_ad: boolean;
-    flag_cd: boolean;
-    rcode: string;
-    questions: any[];
-    answers: any[]
-    authorities: any[]
-    additionals: any[]
-  }
+  (buf: Buffer, offset?: number): HeaderData
   bytes: number
 }
 
 const header = {
-  encode: function (h: any, buf?: Buffer, offset?: number) {
+  encode: function (h: HeaderData, buf?: Buffer, offset?: number) {
     const bufs: Buffer = buf || Buffer.alloc(header.encodingLength())
     if (!offset) offset = 0
 
@@ -343,7 +344,7 @@ rsoa.encode.bytes = 0
 rsoa.decode.bytes = 0
 
 interface rtxtEncode {
-  (data: (string | Buffer)[], buf?: Buffer, offset?: number): Buffer
+  (data: (string | Buffer)[] | string | Buffer, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface rtxtDecode {
@@ -352,9 +353,9 @@ interface rtxtDecode {
 }
 
 const rtxt = {
-  encode: function (data: (string | Buffer)[], buf?: Buffer, offset?: number) {
-    const newdata: Buffer[] = []
-    if (!Array.isArray(data)) data = [data]
+  encode: function (data: (string | Buffer)[] | string | Buffer, buf?: Buffer, offset?: number) {
+    let newdata: any[] = []
+    if (!Array.isArray(data)) newdata = [data]
     for (let i = 0; i < data.length; i++) {
       if (typeof data[i] === 'string') {
         newdata[i] = Buffer.from(data[i] as string)
@@ -366,7 +367,7 @@ const rtxt = {
       }
     }
 
-    const bufs: Buffer = buf || Buffer.allocUnsafe(rtxt.encodingLength(data))
+    const bufs: Buffer = buf || Buffer.allocUnsafe(rtxt.encodingLength(newdata))
     if (!offset) offset = 0
 
     const oldOffset = offset
@@ -405,7 +406,7 @@ const rtxt = {
     return data
   } as rtxtDecode,
 
-  encodingLength: function (data: (string| Buffer)[]) {
+  encodingLength: function (data: (string| Buffer)[] | string | Buffer) {
     if (!Array.isArray(data)) data = [data]
     let length = 2
     data.forEach(function (buf) {
@@ -1790,10 +1791,23 @@ question.encode.bytes = 0
 question.decode.bytes = 0
 
 interface result {
-  questions: Question[];
-  answers: answer[];
-  authorities: any[];
-  additionals: any[]
+  id: number;
+  type: 'response' | 'query';
+  flags: number;
+  flag_qr?: boolean;
+  opcode?: string;
+  flag_aa?: boolean;
+  flag_tc?: boolean;
+  flag_rd?: boolean;
+  flag_ra?: boolean;
+  flag_z?: boolean;
+  flag_ad?: boolean;
+  flag_cd?: boolean;
+  rcode?: string;
+  questions?: Question[];
+  answers?: answer[]
+  authorities?: any[]
+  additionals?: any[]
 }
 
 function encode (result: result, buf?: Buffer, offset?: number) {
@@ -1822,7 +1836,7 @@ function encode (result: result, buf?: Buffer, offset?: number) {
 
 encode.bytes = 0
 
-function decode (buf: Buffer, offset?: number) {
+function decode (buf: Buffer, offset?: number): result {
   if (!offset) offset = 0
 
   const oldOffset = offset

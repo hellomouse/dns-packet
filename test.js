@@ -1,3 +1,4 @@
+// @ts-check
 'use strict'
 
 const tape = require('tape')
@@ -41,6 +42,8 @@ tape('txt-scalar-buffer', function (t) {
 tape('txt-invalid-data', function (t) {
   t.throws(function () { packet.txt.encode(null) }, 'null')
   t.throws(function () { packet.txt.encode(undefined) }, 'undefined')
+  // @ts-ignore
+  // Intentional bad value
   t.throws(function () { packet.txt.encode(10) }, 'number')
   t.end()
 })
@@ -353,7 +356,7 @@ tape('opt', function (t) {
   t.ok(compare(t, 0, additional2.flags), 'flags match')
   additional1.flags = packet.DNSSEC_OK
   additional1.extendedRcode = 0x80
-  additional1.options = [ {
+  additional1.options = [{
     code: 'CLIENT_SUBNET', // edns-client-subnet, see RFC 7871
     ip: 'fe80::',
     sourcePrefixLength: 64

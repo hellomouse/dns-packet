@@ -22,10 +22,10 @@ function toString (rcode: number) {
     case 14: return 'RCODE_14'
     case 15: return 'RCODE_15'
   }
-  return 'RCODE_' + rcode
+  return `RCODE_${rcode}`
 }
 
-function toRCode (code: string) {
+function toRcode (code: string) {
   switch (code.toUpperCase()) {
     case 'NOERROR': return 0
     case 'FORMERR': return 1
@@ -49,5 +49,5 @@ function toRCode (code: string) {
 
 export = {
   toString,
-  toRCode
+  toRcode
 }
