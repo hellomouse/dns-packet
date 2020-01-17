@@ -249,6 +249,16 @@ And an answer, additional, or authority looks like this
 }
 ```
 
+#### `URI`
+
+``` js
+{
+  priority: 1,
+  weight: 1,
+  target: 'proto://service.url/'
+}
+```
+
 #### `OPT`
 
 [EDNS0](https://tools.ietf.org/html/rfc6891) options.
