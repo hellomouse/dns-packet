@@ -1,5 +1,3 @@
-'use strict'
-
 function toString (type: number) {
   switch (type) {
     // list at

@@ -1,5 +1,3 @@
-'use strict'
-
 function toString (klass: number) {
   switch (klass) {
     case 1: return 'IN'

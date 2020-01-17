@@ -1,6 +1,3 @@
-// @ts-check
-'use strict'
-
 import types = require('./types')
 import rcodes = require('./rcodes')
 import opcodes = require('./opcodes')
