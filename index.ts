@@ -473,12 +473,16 @@ const rnull = {
 rnull.encode.bytes = 0
 rnull.decode.bytes = 0
 
+interface rhInfo {
+  os: string
+  cpu: string
+}
 interface rhInfoEncode {
   (data: { cpu: string; os: string }, buf?: Buffer, offset?: number): Buffer
   bytes: number
 }
 interface rhInfoDecode {
-  (buf: Buffer, offset?: number): Buffer
+  (buf: Buffer, offset?: number): rhInfo
   bytes: number
 }
 const rhinfo = {
@@ -502,14 +506,14 @@ const rhinfo = {
 
     const oldOffset = offset
 
-    const data = {}
+    const data: any = {}
     offset += 2
     data.cpu = string.decode(buf, offset)
     offset += string.decode.bytes
     data.os = string.decode(buf, offset)
     offset += string.decode.bytes
     rhinfo.decode.bytes = offset - oldOffset
-    return data
+    return data as rhInfo
   } as rhInfoDecode,
 
   encodingLength: function (data: { cpu: string; os: string }) {
@@ -981,7 +985,7 @@ const ropt = {
     if (!offset) offset = 0
     const oldOffset = offset
 
-    const options = []
+    const options: rOptionData[] = []
     let rdlen = buf.readUInt16BE(offset)
     offset += 2
     let o = 0
@@ -1217,309 +1221,383 @@ const rrp = {
 rrp.encode.bytes = 0
 rrp.decode.bytes = 0
 
-
-const typebitmap = {}
-
-typebitmap.encode = function (typelist, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(typebitmap.encodingLength(typelist))
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  var typesByWindow = []
-  for (var i = 0; i < typelist.length; i++) {
-    var typeid = types.toType(typelist[i])
-    if (typesByWindow[typeid >> 8] === undefined) {
-      typesByWindow[typeid >> 8] = []
-    }
-    typesByWindow[typeid >> 8][(typeid >> 3) & 0x1F] |= 1 << (7 - (typeid & 0x7))
-  }
-
-  for (i = 0; i < typesByWindow.length; i++) {
-    if (typesByWindow[i] !== undefined) {
-      var windowBuf = Buffer.from(typesByWindow[i])
-      buf.writeUInt8(i, offset)
-      offset += 1
-      buf.writeUInt8(windowBuf.length, offset)
-      offset += 1
-      windowBuf.copy(buf, offset)
-      offset += windowBuf.length
-    }
-  }
-
-  typebitmap.encode.bytes = offset - oldOffset
-  return buf
+interface typebitmapEncode {
+  (typelist: string[], buf?: Buffer, offset?: number): Buffer
+  bytes: number
 }
+interface typebitmapDecode {
+  (buf: Buffer, offset: number | undefined, length: number): string[]
+  bytes: number
+}
+const typebitmap = {
+  encode: function (typelist: string[], buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(typebitmap.encodingLength(typelist))
+    if (!offset) offset = 0
+    const oldOffset = offset
 
-typebitmap.encode.bytes = 0
+    let typesByWindow: number[][] = []
+    for (let i = 0; i < typelist.length; i++) {
+      let typeid = types.toType(typelist[i])
+      if (typesByWindow[typeid >> 8] === undefined) {
+        typesByWindow[typeid >> 8] = []
+      }
+      typesByWindow[typeid >> 8][(typeid >> 3) & 0x1F] |= 1 << (7 - (typeid & 0x7))
+    }
 
-typebitmap.decode = function (buf, offset, length) {
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  var typelist = []
-  while (offset - oldOffset < length) {
-    var window = buf.readUInt8(offset)
-    offset += 1
-    var windowLength = buf.readUInt8(offset)
-    offset += 1
-    for (var i = 0; i < windowLength; i++) {
-      var b = buf.readUInt8(offset + i)
-      for (var j = 0; j < 8; j++) {
-        if (b & (1 << (7 - j))) {
-          var typeid = types.toString((window << 8) | (i << 3) | j)
-          typelist.push(typeid)
-        }
+    for (let i = 0; i < typesByWindow.length; i++) {
+      if (typesByWindow[i] !== undefined) {
+        let windowBuf = Buffer.from(typesByWindow[i])
+        buf.writeUInt8(i, offset)
+        offset += 1
+        buf.writeUInt8(windowBuf.length, offset)
+        offset += 1
+        windowBuf.copy(buf, offset)
+        offset += windowBuf.length
       }
     }
-    offset += windowLength
+
+    typebitmap.encode.bytes = offset - oldOffset
+    return buf
+  } as typebitmapEncode,
+
+  decode: function (buf: Buffer, offset: number | undefined, length: number) {
+    if (!offset) offset = 0
+    const oldOffset = offset
+
+    let typelist: string[] = []
+    while (offset - oldOffset < length) {
+      let window = buf.readUInt8(offset)
+      offset += 1
+      let windowLength = buf.readUInt8(offset)
+      offset += 1
+      for (let i = 0; i < windowLength; i++) {
+        let b = buf.readUInt8(offset + i)
+        for (let j = 0; j < 8; j++) {
+          if (b & (1 << (7 - j))) {
+            let typeid = types.toString((window << 8) | (i << 3) | j)
+            typelist.push(typeid)
+          }
+        }
+      }
+      offset += windowLength
+    }
+
+    typebitmap.decode.bytes = offset - oldOffset
+    return typelist
+  } as typebitmapDecode,
+
+  encodingLength: function (typelist: string[]) {
+    let extents: number[] = []
+    for (let i = 0; i < typelist.length; i++) {
+      let typeid = types.toType(typelist[i])
+      extents[typeid >> 8] = Math.max(extents[typeid >> 8] || 0, typeid & 0xFF)
+    }
+
+    let len = 0
+    for (let i = 0; i < extents.length; i++) {
+      if (extents[i] !== undefined) {
+        len += 2 + Math.ceil((extents[i] + 1) / 8)
+      }
+    }
+
+    return len
   }
-
-  typebitmap.decode.bytes = offset - oldOffset
-  return typelist
 }
-
+typebitmap.encode.bytes = 0
 typebitmap.decode.bytes = 0
 
-typebitmap.encodingLength = function (typelist) {
-  var extents = []
-  for (var i = 0; i < typelist.length; i++) {
-    var typeid = types.toType(typelist[i])
-    extents[typeid >> 8] = Math.max(extents[typeid >> 8] || 0, typeid & 0xFF)
-  }
-
-  var len = 0
-  for (i = 0; i < extents.length; i++) {
-    if (extents[i] !== undefined) {
-      len += 2 + Math.ceil((extents[i] + 1) / 8)
-    }
-  }
-
-  return len
+interface rNSEC {
+  rrtypes: string[]
+  nextDomain: string
 }
-
-const rnsec = {}
-
-rnsec.encode = function (record, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(rnsec.encodingLength(record))
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  offset += 2 // Leave space for length
-  name.encode(record.nextDomain, buf, offset)
-  offset += name.encode.bytes
-  typebitmap.encode(record.rrtypes, buf, offset)
-  offset += typebitmap.encode.bytes
-
-  rnsec.encode.bytes = offset - oldOffset
-  buf.writeUInt16BE(rnsec.encode.bytes - 2, oldOffset)
-  return buf
+interface rNSECEncode {
+  (record: rNSEC, buf?: Buffer, offset?: number): Buffer
+  bytes: number
 }
+interface rNSECDecode {
+  (buf: Buffer, offset?: number): rNSEC
+  bytes: number
+}
+const rnsec = {
+  encode: function (record: rNSEC, buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(rnsec.encodingLength(record))
+    if (!offset) offset = 0
+    const oldOffset = offset
 
+    offset += 2 // Leave space for length
+    name.encode(record.nextDomain, buf, offset)
+    offset += name.encode.bytes
+    typebitmap.encode(record.rrtypes, buf, offset)
+    offset += typebitmap.encode.bytes
+
+    rnsec.encode.bytes = offset - oldOffset
+    buf.writeUInt16BE(rnsec.encode.bytes - 2, oldOffset)
+    return buf
+  } as rNSECEncode,
+
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+    const oldOffset = offset
+
+    let record: any = {}
+    let length = buf.readUInt16BE(offset)
+    offset += 2
+    record.nextDomain = name.decode(buf, offset)
+    offset += name.decode.bytes
+    record.rrtypes = typebitmap.decode(buf, offset, length - (offset - oldOffset))
+    offset += typebitmap.decode.bytes
+
+    rnsec.decode.bytes = offset - oldOffset
+    return record as rNSEC
+  } as rNSECDecode,
+
+  encodingLength: function (record: rNSEC) {
+    return 2 +
+      name.encodingLength(record.nextDomain) +
+      typebitmap.encodingLength(record.rrtypes)
+  }
+}
 rnsec.encode.bytes = 0
-
-rnsec.decode = function (buf, offset) {
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  var record = {}
-  var length = buf.readUInt16BE(offset)
-  offset += 2
-  record.nextDomain = name.decode(buf, offset)
-  offset += name.decode.bytes
-  record.rrtypes = typebitmap.decode(buf, offset, length - (offset - oldOffset))
-  offset += typebitmap.decode.bytes
-
-  rnsec.decode.bytes = offset - oldOffset
-  return record
-}
-
 rnsec.decode.bytes = 0
 
-rnsec.encodingLength = function (record) {
-  return 2 +
-    name.encodingLength(record.nextDomain) +
-    typebitmap.encodingLength(record.rrtypes)
+interface rNSEC3 {
+  flags: number
+  iterations: number
+  algorithm: number
+  salt: Buffer
+  nextDomain: Buffer
+  rrtypes: string[]
 }
-
-const rnsec3 = {}
-
-rnsec3.encode = function (record, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(rnsec3.encodingLength(record))
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  const salt = record.salt
-  if (!Buffer.isBuffer(salt)) {
-    throw new Error('salt must be a Buffer')
-  }
-
-  const nextDomain = record.nextDomain
-  if (!Buffer.isBuffer(nextDomain)) {
-    throw new Error('nextDomain must be a Buffer')
-  }
-
-  offset += 2 // Leave space for length
-  buf.writeUInt8(record.algorithm, offset)
-  offset += 1
-  buf.writeUInt8(record.flags, offset)
-  offset += 1
-  buf.writeUInt16BE(record.iterations, offset)
-  offset += 2
-  buf.writeUInt8(salt.length, offset)
-  offset += 1
-  salt.copy(buf, offset, 0, salt.length)
-  offset += salt.length
-  buf.writeUInt8(nextDomain.length, offset)
-  offset += 1
-  nextDomain.copy(buf, offset, 0, nextDomain.length)
-  offset += nextDomain.length
-  typebitmap.encode(record.rrtypes, buf, offset)
-  offset += typebitmap.encode.bytes
-
-  rnsec3.encode.bytes = offset - oldOffset
-  buf.writeUInt16BE(rnsec3.encode.bytes - 2, oldOffset)
-  return buf
+interface rNSEC3Encode {
+  (record: rNSEC3, buf?: Buffer, offset?: number): Buffer
+  bytes: number
 }
+interface rNSEC3Decode {
+  (buf: Buffer, offset?: number): rNSEC3
+  bytes: number
+}
+const rnsec3 = {
+  encode: function (record: rNSEC3, buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(rnsec3.encodingLength(record))
+    if (!offset) offset = 0
+    const oldOffset = offset
 
+    const salt = record.salt
+    if (!Buffer.isBuffer(salt)) {
+      throw new Error('salt must be a Buffer')
+    }
+
+    const nextDomain = record.nextDomain
+    if (!Buffer.isBuffer(nextDomain)) {
+      throw new Error('nextDomain must be a Buffer')
+    }
+
+    offset += 2 // Leave space for length
+    buf.writeUInt8(record.algorithm, offset)
+    offset += 1
+    buf.writeUInt8(record.flags, offset)
+    offset += 1
+    buf.writeUInt16BE(record.iterations, offset)
+    offset += 2
+    buf.writeUInt8(salt.length, offset)
+    offset += 1
+    salt.copy(buf, offset, 0, salt.length)
+    offset += salt.length
+    buf.writeUInt8(nextDomain.length, offset)
+    offset += 1
+    nextDomain.copy(buf, offset, 0, nextDomain.length)
+    offset += nextDomain.length
+    typebitmap.encode(record.rrtypes, buf, offset)
+    offset += typebitmap.encode.bytes
+
+    rnsec3.encode.bytes = offset - oldOffset
+    buf.writeUInt16BE(rnsec3.encode.bytes - 2, oldOffset)
+    return buf
+  } as rNSEC3Encode,
+
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+    const oldOffset = offset
+
+    let record: any = {}
+    let length = buf.readUInt16BE(offset)
+    offset += 2
+    record.algorithm = buf.readUInt8(offset)
+    offset += 1
+    record.flags = buf.readUInt8(offset)
+    offset += 1
+    record.iterations = buf.readUInt16BE(offset)
+    offset += 2
+    const saltLength = buf.readUInt8(offset)
+    offset += 1
+    record.salt = buf.slice(offset, offset + saltLength)
+    offset += saltLength
+    const hashLength = buf.readUInt8(offset)
+    offset += 1
+    record.nextDomain = buf.slice(offset, offset + hashLength)
+    offset += hashLength
+    record.rrtypes = typebitmap.decode(buf, offset, length - (offset - oldOffset))
+    offset += typebitmap.decode.bytes
+
+    rnsec3.decode.bytes = offset - oldOffset
+    return record as rNSEC3
+  } as rNSEC3Decode,
+
+  encodingLength: function (record: rNSEC3) {
+    return 8 +
+      record.salt.length +
+      record.nextDomain.length +
+      typebitmap.encodingLength(record.rrtypes)
+  }
+}
 rnsec3.encode.bytes = 0
-
-rnsec3.decode = function (buf, offset) {
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  var record = {}
-  var length = buf.readUInt16BE(offset)
-  offset += 2
-  record.algorithm = buf.readUInt8(offset)
-  offset += 1
-  record.flags = buf.readUInt8(offset)
-  offset += 1
-  record.iterations = buf.readUInt16BE(offset)
-  offset += 2
-  const saltLength = buf.readUInt8(offset)
-  offset += 1
-  record.salt = buf.slice(offset, offset + saltLength)
-  offset += saltLength
-  const hashLength = buf.readUInt8(offset)
-  offset += 1
-  record.nextDomain = buf.slice(offset, offset + hashLength)
-  offset += hashLength
-  record.rrtypes = typebitmap.decode(buf, offset, length - (offset - oldOffset))
-  offset += typebitmap.decode.bytes
-
-  rnsec3.decode.bytes = offset - oldOffset
-  return record
-}
-
 rnsec3.decode.bytes = 0
 
-rnsec3.encodingLength = function (record) {
-  return 8 +
-    record.salt.length +
-    record.nextDomain.length +
-    typebitmap.encodingLength(record.rrtypes)
+interface rDSData {
+  digest: Buffer
+  keyTag: number
+  algorithm: number
+  digestType: number
 }
+interface rDSEncode {
+  (digest: rDSData, buf?: Buffer, offset?: number): Buffer
+  bytes: number
+}
+interface rDSDecode {
+  (buf: Buffer, offset?: number): rDSData
+  bytes: number
+}
+const rds = {
+  encode: function (digest: rDSData, buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(rds.encodingLength(digest))
+    if (!offset) offset = 0
+    const oldOffset = offset
 
-const rds = {}
+    const digestdata = digest.digest
+    if (!Buffer.isBuffer(digestdata)) {
+      throw new Error('Digest must be a Buffer')
+    }
 
-rds.encode = function (digest, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(rds.encodingLength(digest))
-  if (!offset) offset = 0
-  const oldOffset = offset
+    offset += 2 // Leave space for length
+    buf.writeUInt16BE(digest.keyTag, offset)
+    offset += 2
+    buf.writeUInt8(digest.algorithm, offset)
+    offset += 1
+    buf.writeUInt8(digest.digestType, offset)
+    offset += 1
+    digestdata.copy(buf, offset, 0, digestdata.length)
+    offset += digestdata.length
 
-  const digestdata = digest.digest
-  if (!Buffer.isBuffer(digestdata)) {
-    throw new Error('Digest must be a Buffer')
+    rds.encode.bytes = offset - oldOffset
+    buf.writeUInt16BE(rds.encode.bytes - 2, oldOffset)
+    return buf
+  } as rDSEncode,
+
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+    const oldOffset = offset
+
+    const digest: any = {}
+    let length = buf.readUInt16BE(offset)
+    offset += 2
+    digest.keyTag = buf.readUInt16BE(offset)
+    offset += 2
+    digest.algorithm = buf.readUInt8(offset)
+    offset += 1
+    digest.digestType = buf.readUInt8(offset)
+    offset += 1
+    digest.digest = buf.slice(offset, oldOffset + length + 2)
+    offset += digest.digest.length
+    rds.decode.bytes = offset - oldOffset
+    return digest as rDSData
+  } as rDSDecode,
+
+  encodingLength: function (digest: rDSData) {
+    return 6 + Buffer.byteLength(digest.digest)
   }
-
-  offset += 2 // Leave space for length
-  buf.writeUInt16BE(digest.keyTag, offset)
-  offset += 2
-  buf.writeUInt8(digest.algorithm, offset)
-  offset += 1
-  buf.writeUInt8(digest.digestType, offset)
-  offset += 1
-  digestdata.copy(buf, offset, 0, digestdata.length)
-  offset += digestdata.length
-
-  rds.encode.bytes = offset - oldOffset
-  buf.writeUInt16BE(rds.encode.bytes - 2, oldOffset)
-  return buf
 }
-
 rds.encode.bytes = 0
-
-rds.decode = function (buf, offset) {
-  if (!offset) offset = 0
-  const oldOffset = offset
-
-  var digest = {}
-  var length = buf.readUInt16BE(offset)
-  offset += 2
-  digest.keyTag = buf.readUInt16BE(offset)
-  offset += 2
-  digest.algorithm = buf.readUInt8(offset)
-  offset += 1
-  digest.digestType = buf.readUInt8(offset)
-  offset += 1
-  digest.digest = buf.slice(offset, oldOffset + length + 2)
-  offset += digest.digest.length
-  rds.decode.bytes = offset - oldOffset
-  return digest
-}
-
 rds.decode.bytes = 0
 
-rds.encodingLength = function (digest) {
-  return 6 + Buffer.byteLength(digest.digest)
+interface rURIRecord {
+  target: string
+  priority: number
+  weight: number
 }
-
-const ruri = {}
-
-ruri.encode = function (record, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(ruri.encodingLength(record))
-  if (!offset) offset = 0
-  const oldOffset = offset
-  const target = record.target
-
-  buf.writeUInt16BE(4 + target.length, offset);
-  offset += 2
-  buf.writeUInt16BE(record.priority, offset)
-  offset += 2
-  buf.writeUInt16BE(record.weight, offset)
-  offset += 2
-  buf.write(target, offset)
-  offset += target.length
-  ruri.encode.bytes = offset - oldOffset
-  return buf
+interface rURIEncode {
+  (digest: rURIRecord, buf?: Buffer, offset?: number): Buffer
+  bytes: number
 }
+interface rURIDecode {
+  (buf: Buffer, offset?: number): rURIRecord
+  bytes: number
+}
+const ruri = {
+  encode: function (record: rURIRecord, buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(ruri.encodingLength(record))
+    if (!offset) offset = 0
+    const oldOffset = offset
+    const target = record.target
 
+    buf.writeUInt16BE(4 + target.length, offset);
+    offset += 2
+    buf.writeUInt16BE(record.priority, offset)
+    offset += 2
+    buf.writeUInt16BE(record.weight, offset)
+    offset += 2
+    buf.write(target, offset)
+    offset += target.length
+    ruri.encode.bytes = offset - oldOffset
+    return buf
+  } as rURIEncode,
+
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+    const oldOffset = offset
+    const record: any = {}
+    var length = buf.readUInt16BE(offset)
+    offset += 2
+    record.priority = buf.readUInt16BE(offset)
+    offset += 2
+    record.weight = buf.readUInt16BE(offset)
+    offset += 2
+    record.target = buf.slice(offset, offset + length - 4).toString()
+    offset += length - 4
+
+    ruri.decode.bytes = offset - oldOffset
+    return record as rURIRecord
+  } as rURIDecode,
+
+  encodingLength: function (record: rURIRecord) {
+    return 6 + record.target.length
+  }
+}
 ruri.encode.bytes = 0
-
-ruri.decode = function (buf, offset) {
-  if (!offset) offset = 0
-  const oldOffset = offset
-  var record = {}
-  var length = buf.readUInt16BE(offset)
-  offset += 2
-  record.priority = buf.readUInt16BE(offset)
-  offset += 2
-  record.weight = buf.readUInt16BE(offset)
-  offset += 2
-  record.target = buf.slice(offset, offset + length - 4).toString()
-  offset += length - 4
-
-  ruri.decode.bytes = offset - oldOffset
-  return record
-}
-
 ruri.decode.bytes = 0
 
-ruri.encodingLength = function (record) {
-  return 6 + record.target.length
-}
-
-function renc(type: string) {
+type RENC = (typeof ra
+| typeof rptr
+| typeof rcname
+| typeof rdname
+| typeof rtxt
+| typeof rnull
+| typeof raaaa
+| typeof rsrv
+| typeof rhinfo
+| typeof rcaa
+| typeof rns
+| typeof rsoa
+| typeof rmx
+| typeof ropt
+| typeof rdnskey
+| typeof rrrsig
+| typeof rrp
+| typeof rnsec
+| typeof rnsec3
+| typeof ruri
+| typeof rds)
+| typeof runknown
+function renc(type: string): RENC {
   switch (type.toUpperCase()) {
     case 'A': return ra
     case 'PTR': return rptr
@@ -1546,145 +1624,167 @@ function renc(type: string) {
   return runknown
 }
 
-const answer = {}
+interface answer {
+  name: string;
+  type: string;
+  udpPayloadSize?: number;
+  extendedRcode?: number;
+  ednsVersion?: number;
+  flags?: number;
+  flag_do?: boolean
+  options?: rOptionData | rOptionData[];
+  class?: string;
+  flush?: boolean;
+  ttl?: number;
+  data?: ReturnType<RENC['decode']>;
+}
+interface answerEncode {
+  (a: answer, buf?: Buffer, offset?: number): Buffer
+  bytes: number
+}
+interface answerDecode {
+  (buf: Buffer, offset?: number): answer
+  bytes: number
+}
+const answer = {
+  encode: function (a: answer, buf?: Buffer, offset?: number) {
+    if (!buf) buf = Buffer.allocUnsafe(answer.encodingLength(a))
+    if (!offset) offset = 0
 
-answer.encode = function (a, buf?: Buffer, offset?: number) {
-  if (!buf) buf = Buffer.allocUnsafe(answer.encodingLength(a))
-  if (!offset) offset = 0
+    const oldOffset = offset
 
-  const oldOffset = offset
+    name.encode(a.name, buf, offset)
+    offset += name.encode.bytes
 
-  name.encode(a.name, buf, offset)
-  offset += name.encode.bytes
+    buf.writeUInt16BE(types.toType(a.type), offset)
 
-  buf.writeUInt16BE(types.toType(a.type), offset)
+    if (a.type.toUpperCase() === 'OPT') {
+      if (a.name !== '.') {
+        throw new Error('OPT name must be root.')
+      }
+      buf.writeUInt16BE(a.udpPayloadSize || 4096, offset + 2)
+      buf.writeUInt8(a.extendedRcode || 0, offset + 4)
+      buf.writeUInt8(a.ednsVersion || 0, offset + 5)
+      buf.writeUInt16BE(a.flags || 0, offset + 6)
 
-  if (a.type.toUpperCase() === 'OPT') {
-    if (a.name !== '.') {
-      throw new Error('OPT name must be root.')
+      offset += 8
+      ropt.encode(a.options || [], buf, offset)
+      offset += ropt.encode.bytes
+    } else {
+      let klass = classes.toClass(a.class === undefined ? 'IN' : a.class)
+      if (a.flush) klass |= FLUSH_MASK // the 1st bit of the class is the flush bit
+      buf.writeUInt16BE(klass, offset + 2)
+      buf.writeUInt32BE(a.ttl || 0, offset + 4)
+
+      offset += 8
+      const enc = renc(a.type)
+      enc.encode(a.data, buf, offset)
+      offset += enc.encode.bytes
     }
-    buf.writeUInt16BE(a.udpPayloadSize || 4096, offset + 2)
-    buf.writeUInt8(a.extendedRcode || 0, offset + 4)
-    buf.writeUInt8(a.ednsVersion || 0, offset + 5)
-    buf.writeUInt16BE(a.flags || 0, offset + 6)
 
-    offset += 8
-    ropt.encode(a.options || [], buf, offset)
-    offset += ropt.encode.bytes
-  } else {
-    let klass = classes.toClass(a.class === undefined ? 'IN' : a.class)
-    if (a.flush) klass |= FLUSH_MASK // the 1st bit of the class is the flush bit
-    buf.writeUInt16BE(klass, offset + 2)
-    buf.writeUInt32BE(a.ttl || 0, offset + 4)
+    answer.encode.bytes = offset - oldOffset
+    return buf
+  } as answerEncode,
 
-    offset += 8
-    const enc = renc(a.type)
-    enc.encode(a.data, buf, offset)
-    offset += enc.encode.bytes
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+
+    const a: answer = {}
+    const oldOffset = offset
+
+    a.name = name.decode(buf, offset)
+    offset += name.decode.bytes
+    a.type = types.toString(buf.readUInt16BE(offset))
+    if (a.type === 'OPT') {
+      a.udpPayloadSize = buf.readUInt16BE(offset + 2)
+      a.extendedRcode = buf.readUInt8(offset + 4)
+      a.ednsVersion = buf.readUInt8(offset + 5)
+      a.flags = buf.readUInt16BE(offset + 6)
+      a.flag_do = ((a.flags >> 15) & 0x1) === 1
+      a.options = ropt.decode(buf, offset + 8)
+      offset += 8 + ropt.decode.bytes
+    } else {
+      const klass = buf.readUInt16BE(offset + 2)
+      a.ttl = buf.readUInt32BE(offset + 4)
+
+      a.class = classes.toString(klass & NOT_FLUSH_MASK)
+      a.flush = !!(klass & FLUSH_MASK)
+
+      const enc = renc(a.type)
+      a.data = enc.decode(buf, offset + 8)
+      offset += 8 + enc.decode.bytes
+    }
+
+    answer.decode.bytes = offset - oldOffset
+    return a as answer
+  } as answerDecode,
+
+  encodingLength: function (a: answer) {
+    const data = (a.data !== null && a.data !== undefined) ? a.data : a.options
+    return name.encodingLength(a.name) + 8 + renc(a.type).encodingLength(data)
   }
-
-  answer.encode.bytes = offset - oldOffset
-  return buf
 }
-
 answer.encode.bytes = 0
-
-answer.decode = function (buf: Buffer, offset?: number) {
-  if (!offset) offset = 0
-
-  const a = {}
-  const oldOffset = offset
-
-  a.name = name.decode(buf, offset)
-  offset += name.decode.bytes
-  a.type = types.toString(buf.readUInt16BE(offset))
-  if (a.type === 'OPT') {
-    a.udpPayloadSize = buf.readUInt16BE(offset + 2)
-    a.extendedRcode = buf.readUInt8(offset + 4)
-    a.ednsVersion = buf.readUInt8(offset + 5)
-    a.flags = buf.readUInt16BE(offset + 6)
-    a.flag_do = ((a.flags >> 15) & 0x1) === 1
-    a.options = ropt.decode(buf, offset + 8)
-    offset += 8 + ropt.decode.bytes
-  } else {
-    const klass = buf.readUInt16BE(offset + 2)
-    a.ttl = buf.readUInt32BE(offset + 4)
-
-    a.class = classes.toString(klass & NOT_FLUSH_MASK)
-    a.flush = !!(klass & FLUSH_MASK)
-
-    const enc = renc(a.type)
-    a.data = enc.decode(buf, offset + 8)
-    offset += 8 + enc.decode.bytes
-  }
-
-  answer.decode.bytes = offset - oldOffset
-  return a
-}
-
 answer.decode.bytes = 0
 
-answer.encodingLength = function (a) {
-  const data = (a.data !== null && a.data !== undefined) ? a.data : a.options
-  return name.encodingLength(a.name) + 8 + renc(a.type).encodingLength(data)
+
+const question = {
+  encode: function (q, buf, offset) {
+    if (!buf) buf = Buffer.allocUnsafe(question.encodingLength(q))
+    if (!offset) offset = 0
+
+    const oldOffset = offset
+
+    name.encode(q.name, buf, offset)
+    offset += name.encode.bytes
+
+    buf.writeUInt16BE(types.toType(q.type), offset)
+    offset += 2
+
+    buf.writeUInt16BE(classes.toClass(q.class === undefined ? 'IN' : q.class), offset)
+    offset += 2
+
+    question.encode.bytes = offset - oldOffset
+    return q
+  },
+
+  decode: function (buf: Buffer, offset?: number) {
+    if (!offset) offset = 0
+
+    const oldOffset = offset
+    const q: {
+      name: string
+      type: string
+      class: string
+    } | undefined = {}
+
+    q!.name = name.decode(buf, offset)
+    offset += name.decode.bytes
+
+    q!.type = types.toString(buf.readUInt16BE(offset))
+    offset += 2
+
+    q!.class = classes.toString(buf.readUInt16BE(offset))
+    offset += 2
+
+    // q.class is a string, TS doesn't like it, epression works fine in normal JS
+    const qu = !!((q!.class as any) & QU_MASK)
+    // SyntaxError because q.class is a string
+    if (qu) q!.class &= NOT_QU_MASK
+
+    question.decode.bytes = offset - oldOffset
+    return q
+  },
+
+  encodingLength: function (q) {
+    return name.encodingLength(q.name) + 4
+  }
 }
-
-const question = {}
-
-question.encode = function (q, buf, offset) {
-  if (!buf) buf = Buffer.allocUnsafe(question.encodingLength(q))
-  if (!offset) offset = 0
-
-  const oldOffset = offset
-
-  name.encode(q.name, buf, offset)
-  offset += name.encode.bytes
-
-  buf.writeUInt16BE(types.toType(q.type), offset)
-  offset += 2
-
-  buf.writeUInt16BE(classes.toClass(q.class === undefined ? 'IN' : q.class), offset)
-  offset += 2
-
-  question.encode.bytes = offset - oldOffset
-  return q
-}
-
 question.encode.bytes = 0
-
-question.decode = function (buf, offset) {
-  if (!offset) offset = 0
-
-  const oldOffset = offset
-  const q: {
-    name: string
-    type: string
-    class: string
-  } | undefined = {}
-
-  q.name = name.decode(buf, offset)
-  offset += name.decode.bytes
-
-  q.type = types.toString(buf.readUInt16BE(offset))
-  offset += 2
-
-  q.class = classes.toString(buf.readUInt16BE(offset))
-  offset += 2
-
-  const qu = !!(q.class & QU_MASK)
-  if (qu) q.class &= NOT_QU_MASK
-
-  question.decode.bytes = offset - oldOffset
-  return q
-}
-
 question.decode.bytes = 0
 
-question.encodingLength = function (q) {
-  return name.encodingLength(q.name) + 4
-}
 
-function encode(result, buf, offset) {
+function encode(result, buf?: Buffer, offset?: number) {
   if (!buf) buf = Buffer.allocUnsafe(encodingLength(result))
   if (!offset) offset = 0
 
