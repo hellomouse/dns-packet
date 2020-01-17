@@ -1348,6 +1348,51 @@ rds.encodingLength = function (digest) {
   return 6 + Buffer.byteLength(digest.digest)
 }
 
+const ruri = exports.uri = {}
+
+ruri.encode = function (record, buf, offset) {
+  if (!buf) buf = Buffer.allocUnsafe(ruri.encodingLength(record))
+  if (!offset) offset = 0
+  const oldOffset = offset
+  const target = record.target
+
+  buf.writeUInt16BE(4 + target.length, offset);
+  offset += 2
+  buf.writeUInt16BE(record.priority, offset)
+  offset += 2
+  buf.writeUInt16BE(record.weight, offset)
+  offset += 2
+  buf.write(target, offset)
+  offset += target.length
+  ruri.encode.bytes = offset - oldOffset
+  return buf
+}
+
+ruri.encode.bytes = 0
+
+ruri.decode = function (buf, offset) {
+  if (!offset) offset = 0
+  const oldOffset = offset
+  var record = {}
+  var length = buf.readUInt16BE(offset)
+  offset += 2
+  record.priority = buf.readUInt16BE(offset)
+  offset += 2
+  record.weight = buf.readUInt16BE(offset)
+  offset += 2
+  record.target = buf.slice(offset, offset + length - 4).toString()
+  offset += length - 4
+
+  ruri.decode.bytes = offset - oldOffset
+  return record
+}
+
+ruri.decode.bytes = 0
+
+ruri.encodingLength = function (record) {
+  return 6 + record.target.length
+}
+
 const renc = exports.record = function (type: string) {
   switch (type.toUpperCase()) {
     case 'A': return ra
@@ -1369,6 +1414,7 @@ const renc = exports.record = function (type: string) {
     case 'RP': return rrp
     case 'NSEC': return rnsec
     case 'NSEC3': return rnsec3
+    case 'URI': return ruri
     case 'DS': return rds
   }
   return runknown
