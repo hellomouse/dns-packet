@@ -1,5 +1,5 @@
 # dns-packet
-[![](https://img.shields.io/npm/v/dns-packet.svg?style=flat)](https://www.npmjs.org/package/dns-packet) [![](https://img.shields.io/npm/dm/dns-packet.svg)](https://www.npmjs.org/package/dns-packet) [![](https://api.travis-ci.org/hellomouze/dns-packet.svg?style=flat)](https://travis-ci.org/hellomouse/dns-packet) [![Coverage Status](https://coveralls.io/repos/github/hellomouse/dns-packet/badge.svg?branch=master)](https://coveralls.io/github/hellomouse/dns-packet?branch=master)
+[![](https://img.shields.io/npm/v/dns-packet.svg?style=flat)](https://www.npmjs.org/package/dns-packet) [![](https://img.shields.io/npm/dm/dns-packet.svg)](https://www.npmjs.org/package/dns-packet) [![](https://travis-ci.com/hellomouse/dns-packet.svg?branch=master)](https://travis-ci.com/hellomouse/dns-packet) [![Coverage Status](https://coveralls.io/repos/github/hellomouse/dns-packet/badge.svg?branch=master)](https://coveralls.io/github/hellomouse/dns-packet?branch=master)
 
 An [abstract-encoding](https://github.com/mafintosh/abstract-encoding) compliant module for encoding / decoding DNS packets. Lifted out of [multicast-dns](https://github.com/mafintosh/multicast-dns) as a separate module.
 
