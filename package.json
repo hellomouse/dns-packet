@@ -12,9 +12,10 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
+    "build": "tsc -p tsconfig.json",
     "clean": "rm -rf coverage .nyc_output/",
     "lint": "eslint --color src/*.ts examples/*.js",
-    "pretest": "npm run lint && tsc -p tsconfig.json",
+    "pretest": "npm run lint && npm run build",
     "test": "tape test.js",
     "coverage": "nyc -r html npm test"
   },
